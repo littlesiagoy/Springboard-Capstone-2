@@ -8,6 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.preprocessing import LabelEncoder
+from imblearn.over_sampling import RandomOverSampler
 
 
 ''' Data Cleansing '''
@@ -142,6 +143,7 @@ slim_data = data[['Month of Incident', 'Age of Person Reported', 'Day of Inciden
 
 # TODO: ''' Random Over-Sampling '''
 # Increases the liklihood of overfitting
+# Use the http://contrib.scikit-learn.org/imbalanced-learn/stable/generated/imblearn.over_sampling.RandomOverSampler.html#imblearn.over_sampling.RandomOverSampler
 
 ''' Machine Learning '''
 ########################################################################################################################
