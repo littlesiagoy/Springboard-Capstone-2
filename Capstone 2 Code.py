@@ -143,7 +143,11 @@ slim_data = data[['Month of Incident', 'Age of Person Reported', 'Day of Inciden
 
 # TODO: ''' Random Over-Sampling '''
 # Increases the liklihood of overfitting
-# Use the http://contrib.scikit-learn.org/imbalanced-learn/stable/generated/imblearn.over_sampling.RandomOverSampler.html#imblearn.over_sampling.RandomOverSampler
+# http://contrib.scikit-learn.org/imbalanced-learn/stable/generated/imblearn.over_sampling.RandomOverSampler.html#imblearn.over_sampling.RandomOverSampler
+
+# Using k-fold validation, break the data into test & train.  Then perform oversampling on the train set.
+#
+
 
 ''' Machine Learning '''
 ########################################################################################################################
