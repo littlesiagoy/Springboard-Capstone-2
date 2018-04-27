@@ -6,9 +6,11 @@ from sklearn.ensemble import IsolationForest, GradientBoostingClassifier, Random
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.model_selection import cross_val_score, train_test_split, TimeSeriesSplit
 from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import roc_auc_score
 from imblearn.over_sampling import RandomOverSampler
+
 
 
 ''' Data Cleansing '''
@@ -125,11 +127,11 @@ pca = PCA()
 pca.fit_transform(data)
 
 # Plot the results.
-plt.plot(pca.explained_variance_)
-plt.xlabel('n_components')
-plt.ylabel('explained variance')
-plt.title('Explained Variance by Variable - No Outliers')
-plt.show()
+# plt.plot(pca.explained_variance_)
+# plt.xlabel('n_components')
+# plt.ylabel('explained variance')
+# plt.title('Explained Variance by Variable - No Outliers')
+# plt.show()
 
 # Print out the explained variance.
 print(pd.DataFrame(pca.explained_variance_ratio_, columns=['Explained Variance Ratio'], index=data.columns))
@@ -138,61 +140,194 @@ slim_data = data[['Month of Incident', 'Age of Person Reported', 'Day of Inciden
                   'Hour of Incident', 'Minute of Incident']]
 
 
-''' Dealing with Unbalanced Classes '''
+''' Dealing with Unbalanced Classes and training the models. '''
 ########################################################################################################################
 
-# TODO: ''' Random Over-Sampling '''
-# Increases the liklihood of overfitting
-# http://contrib.scikit-learn.org/imbalanced-learn/stable/generated/imblearn.over_sampling.RandomOverSampler.html#imblearn.over_sampling.RandomOverSampler
 
-# Using k-fold validation, break the data into test & train.  Then perform oversampling on the train set.
-#
+# Create the time series split instance.
+tscv = TimeSeriesSplit(n_splits=8)
 
+# Initalize the scores dataframe, and index.
+scores = pd.DataFrame()
+index = 0
 
-''' Machine Learning '''
-########################################################################################################################
-########################################################################################################################
+''' Perform the training using the slim data & oversampling. '''
+# Actually use the time series split to create the test and training sets.
+for train_index, test_index in tscv.split(slim_data):
 
-# TODO Change the performance metrics to confusion matrix and ROC curves
-# See https://elitedatascience.com/imbalanced-classes
-# Initiate the scores dataframe.
-scores = pd.DataFrame(columns=['Score'])
+    # Create the train & test split.
+    X_train, X_test = slim_data.iloc[train_index], slim_data.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-''' Logistic Regression '''
-########################################################################################################################
-# Initialize the model.
-log_reg = LogisticRegression()
+    # Create the oversampling instance.
+    ros = RandomOverSampler(random_state=2018)
 
-scores.loc['Logistic Regression', 'Score'] = np.mean(cross_val_score(log_reg, slim_data, y, cv=10))
+    # Oversample the training set.
+    X_train, y_train = ros.fit_sample(X_train, y_train)
 
+    ''' Initialize the different machine learning models we want to use. '''
+    # Logistic Regression
+    log_reg = LogisticRegression()
 
-# Trees are good for dealing with unbalanced data.
-''' Decision Tree '''
-########################################################################################################################
-tree_classifer = DecisionTreeClassifier()
+    # Decision Trees
+    tree_classifer = DecisionTreeClassifier()
 
-scores.loc['Decision Tree', 'Score'] = np.mean(cross_val_score(tree_classifer, slim_data, y, cv=10))
+    # Random Forest
+    rfc = RandomForestClassifier()
 
-''' Gradient Boosted Classifier Tree '''
-########################################################################################################################
-gbc = GradientBoostingClassifier()
+    # Fit the data using the various models.
+    log_reg.fit(X_train, y_train)
+    tree_classifer.fit(X_train, y_train)
+    rfc.fit(X_train, y_train)
+    # xgb.train(X_train, y_train)
 
-scores.loc['Gradient Boosting Classifier Tree', 'Score'] = np.mean(cross_val_score(gbc, slim_data, y, cv=10))
+    # Predict with the various models.
+    y_log_reg = log_reg.predict(X_test)
+    y_tree_classifier = tree_classifer.predict(X_test)
+    y_rfc = rfc.predict(X_test)
 
-''' Random Forest '''
-########################################################################################################################
-rfc = RandomForestClassifier()
+    # Compute the AROC from the predictions.
 
-scores.loc['Random Forest Classifier', 'Score'] = np.mean(cross_val_score(rfc, slim_data, y, cv=10))
+    scores.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
+    scores.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
+    scores.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
 
-''' XG Boost '''
-########################################################################################################################
+    index += 1
 
-# ''' Interpretation '''
-# X_train, X_test, y_train, y_test = train_test_split(slim_data, y)
-# log_reg.fit(X_train, y_train)
-# print('The Coefficients for the logistic regression is: ')
-# print(log_reg.coef_)
-# print(slim_data.columns)
+''' Perform the training with the cleansed data & oversampling. '''
+scores2 = pd.DataFrame()
+for train_index, test_index in tscv.split(data):
 
+    # Create the train & test split.
+    X_train, X_test = data.iloc[train_index], data.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+    # Create the oversampling instance.
+    ros = RandomOverSampler(random_state=2018)
+
+    # Oversample the training set.
+    X_train, y_train = ros.fit_sample(X_train, y_train)
+
+    ''' Initialize the different machine learning models we want to use. '''
+    # Logistic Regression
+    log_reg = LogisticRegression()
+
+    # Decision Trees
+    tree_classifer = DecisionTreeClassifier()
+
+    # Random Forest
+    rfc = RandomForestClassifier()
+
+    # Fit the data using the various models.
+    log_reg.fit(X_train, y_train)
+    tree_classifer.fit(X_train, y_train)
+    rfc.fit(X_train, y_train)
+    # xgb.train(X_train, y_train)
+
+    # Predict with the various models.
+    y_log_reg = log_reg.predict(X_test)
+    y_tree_classifier = tree_classifer.predict(X_test)
+    y_rfc = rfc.predict(X_test)
+
+    # Compute the AROC from the predictions.
+
+    scores2.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
+    scores2.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
+    scores2.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
+
+    index += 1
+
+''' Perform the training with the clenased data & no oversampling. '''
+scores3 = pd.DataFrame()
+for train_index, test_index in tscv.split(data):
+
+    # Create the train & test split.
+    X_train, X_test = data.iloc[train_index], data.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+    # Create the oversampling instance.
+    # ros = RandomOverSampler(random_state=2018)
+
+    # Oversample the training set.
+    X_train, y_train = ros.fit_sample(X_train, y_train)
+
+    ''' Initialize the different machine learning models we want to use. '''
+    # Logistic Regression
+    log_reg = LogisticRegression()
+
+    # Decision Trees
+    tree_classifer = DecisionTreeClassifier()
+
+    # Random Forest
+    rfc = RandomForestClassifier()
+
+    # Fit the data using the various models.
+    log_reg.fit(X_train, y_train)
+    tree_classifer.fit(X_train, y_train)
+    rfc.fit(X_train, y_train)
+    # xgb.train(X_train, y_train)
+
+    # Predict with the various models.
+    y_log_reg = log_reg.predict(X_test)
+    y_tree_classifier = tree_classifer.predict(X_test)
+    y_rfc = rfc.predict(X_test)
+
+    # Compute the AROC from the predictions.
+
+    scores3.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
+    scores3.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
+    scores3.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
+
+    index += 1
+
+''' Perform the training with the slim data & no oversampling. '''
+scores4 = pd.DataFrame()
+for train_index, test_index in tscv.split(slim_data):
+
+    # Create the train & test split.
+    X_train, X_test = slim_data.iloc[train_index], slim_data.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+    # Create the oversampling instance.
+    # ros = RandomOverSampler(random_state=2018)
+
+    # Oversample the training set.
+    # X_train, y_train = ros.fit_sample(X_train, y_train)
+
+    ''' Initialize the different machine learning models we want to use. '''
+    # Logistic Regression
+    log_reg = LogisticRegression()
+
+    # Decision Trees
+    tree_classifer = DecisionTreeClassifier()
+
+    # Random Forest
+    rfc = RandomForestClassifier()
+
+    # Fit the data using the various models.
+    log_reg.fit(X_train, y_train)
+    tree_classifer.fit(X_train, y_train)
+    rfc.fit(X_train, y_train)
+    # xgb.train(X_train, y_train)
+
+    # Predict with the various models.
+    y_log_reg = log_reg.predict(X_test)
+    y_tree_classifier = tree_classifer.predict(X_test)
+    y_rfc = rfc.predict(X_test)
+
+    # Compute the AROC from the predictions.
+
+    scores4.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
+    scores4.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
+    scores4.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
+
+    index += 1
+
+# Export the results
+writer = pd.ExcelWriter('Training Results.xlsx', engine='xlsxwriter', datetime_format='mm/dd/yyyy')
+
+scores.to_excel(writer, sheet_name='Slim Data & Oversampling')
+scores4.to_excel(writer, sheet_name='Slim Data & No Sampling')
+scores2.to_excel(writer, sheet_name='Cleansed Data & Oversampling')
+scores3.to_excel(writer, sheet_name='Cleansed Data & No sampling')
 
