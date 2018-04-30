@@ -11,6 +11,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import roc_auc_score
 from imblearn.over_sampling import RandomOverSampler
 
+
+
 ''' Data Cleansing '''
 ########################################################################################################################
 ########################################################################################################################
@@ -64,10 +66,8 @@ le = LabelEncoder()
 le.fit(y)
 y = pd.DataFrame(le.transform(y))
 
-''' Feature Selction '''
-#######################################################################################################################
-# Drop the variables that could be explained by other variables.
-data = data.drop(['County', 'Railroad Reporting', 'Job Code'], axis=1)
+''' Outlier Detection '''
+########################################################################################################################
 
 # Keep only the columns we think would help us answer our question.
 data = data.drop(['Nature of Injury', 'Location of Injury on Body', 'Indicator of Death Within a Year',
@@ -79,74 +79,93 @@ data = data.drop(['Nature of Injury', 'Location of Injury on Body', 'Indicator o
 int_cols = ['Age of Person Reported', 'Day of Incident', 'Year of Incident - 4 Digits', 'Hour of Incident',
             'Minute of Incident', 'Month of Incident']
 
-# Convert those columns as ints.
 data[int_cols] = data[int_cols].apply(pd.to_numeric, errors='coerce')
+
+# Impute the age of person reported with the average.
+data['Age of Person Reported'] = data['Age of Person Reported'].fillna(round(data['Age of Person Reported'].mean()))
+
+''' Feature Selction '''
+# Drop the variables that could be explained by other variables.
+data = data.drop(['County', 'Railroad Reporting', 'Job Code'], axis=1)
 
 # Dummify the dataset.
 data = pd.get_dummies(data)
-#######################################################################################################################
-#######################################################################################################################
+
+''' Isolation Forests '''
+# Initialize the model.
+isof = IsolationForest()
+
+# Fir the data and score it.
+isof.fit(data)
+outlier_scores = isof.predict(data)
+outlier_scores = pd.DataFrame(outlier_scores)
+outlier_scores.to_excel('Outlier Scores - IF.xlsx')
+
+# Remove all the outliers
+pd.DataFrame(data)
+data['Outlier Score'] = outlier_scores
+
+y = y.loc[data.loc[:, 'Outlier Score'] == 1]
+data = data.loc[data.loc[:, 'Outlier Score'] == 1].drop('Outlier Score', axis=1)
+
+''' Local Outlier Factor '''
+# lof = LocalOutlierFactor()
+#
+# outlier_scores = pd.DataFrame(lof.fit_predict(data))
+# outlier_scores.columns = ['Outlier Score']
+# outlier_scores.to_excel('Outlier Scores - LOF.xlsx')
 
 
-''' Test/Train Split, Outlier Detection, and Model Building '''
-#######################################################################################################################
-#######################################################################################################################
+''' Dimensionality Reduction '''
+########################################################################################################################
+
+''' PCA '''
+# Initialize the PCA model.
+pca = PCA()
+
+# Perform the PCA on the non-outlier data.
+pca.fit_transform(data)
+
+# Plot the results.
+# plt.plot(pca.explained_variance_)
+# plt.xlabel('n_components')
+# plt.ylabel('explained variance')
+# plt.title('Explained Variance by Variable - No Outliers')
+# plt.show()
+
+# Print out the explained variance.
+print(pd.DataFrame(pca.explained_variance_ratio_, columns=['Explained Variance Ratio'], index=data.columns))
+
+slim_data = data[['Month of Incident', 'Age of Person Reported', 'Day of Incident', 'Year of Incident - 4 Digits',
+                  'Hour of Incident', 'Minute of Incident']]
+
+
+''' Dealing with Unbalanced Classes and training the models. '''
+########################################################################################################################
+
 
 # Create the time series split instance.
-tscv = TimeSeriesSplit(n_splits=3)
+tscv = TimeSeriesSplit(n_splits=8)
 
 # Initalize the scores dataframe, and index.
 scores = pd.DataFrame()
-scores2 = pd.DataFrame()
-scores3 = pd.DataFrame()
-scores4 = pd.DataFrame()
-
 index = 0
 
-''' Perform the Splitting, Outlier Detection, and Model Training'''
+''' Perform the training using the slim data & oversampling. '''
 # Actually use the time series split to create the test and training sets.
-for train_index, test_index in tscv.split(data):
+for train_index, test_index in tscv.split(slim_data):
 
-    ''' Train & Test Split '''
     # Create the train & test split.
-    X_train, X_test = data.iloc[train_index], data.iloc[test_index]
+    X_train, X_test = slim_data.iloc[train_index], slim_data.iloc[test_index]
     y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-    ''' Data Imputation '''
-    # Impute the age of person reported with the average.
-    X_train['Age of Person Reported'] = X_train['Age of Person Reported'].fillna(round(X_train['Age of Person Reported'].mean()))
-    X_test['Age of Person Reported'] = X_test['Age of Person Reported'].fillna(round(X_test['Age of Person Reported'].mean()))
+    # Create the oversampling instance.
+    ros = RandomOverSampler(random_state=2018)
 
-    ''' Isolation Forests '''
-    # Initialize the model.
-    isof = IsolationForest()
+    # Oversample the training set.
+    X_train, y_train = ros.fit_sample(X_train, y_train)
 
-    # Fit the data and score it.
-    isof.fit(X_train)
-    outlier_scores = isof.predict(X_train)
-    outlier_scores = pd.DataFrame(outlier_scores)
-    outlier_scores.to_excel('Outlier Scores - IF.xlsx')
-
-    ''' Local Outlier Factor '''
-    # lof = LocalOutlierFactor()
-    #
-    # outlier_scores_lof = pd.DataFrame(lof.fit_predict(X_train))
-    # outlier_scores_lof.columns = ['Outlier Score']
-    # outlier_scores_lof.to_excel('Outlier Scores - LOF.xlsx')
-
-    # Remove all the outliers
-    pd.DataFrame(X_train)
-    X_train['Outlier Score'] = outlier_scores
-
-    y_train = y_train.loc[X_train.loc[:, 'Outlier Score'] == 1]
-    X_train = X_train.loc[X_train.loc[:, 'Outlier Score'] == 1].drop('Outlier Score', axis=1)
-
-    # Delete the isolation forest for memory.
-    del isof
-
-    ''' Perform No PCA & No Oversampling, and then train the models. '''
-    ####################################################################################################################
-    ''' Model Training '''
+    ''' Initialize the different machine learning models we want to use. '''
     # Logistic Regression
     log_reg = LogisticRegression()
 
@@ -160,6 +179,7 @@ for train_index, test_index in tscv.split(data):
     log_reg.fit(X_train, y_train)
     tree_classifer.fit(X_train, y_train)
     rfc.fit(X_train, y_train)
+    # xgb.train(X_train, y_train)
 
     # Predict with the various models.
     y_log_reg = log_reg.predict(X_test)
@@ -167,21 +187,28 @@ for train_index, test_index in tscv.split(data):
     y_rfc = rfc.predict(X_test)
 
     # Compute the AROC from the predictions.
+
     scores.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
     scores.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
     scores.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
 
-    ''' Perform No PCA & Oversampling, then Model training '''
-    ####################################################################################################################
+    index += 1
 
-    ''' Perform Oversampling '''
+''' Perform the training with the cleansed data & oversampling. '''
+scores2 = pd.DataFrame()
+for train_index, test_index in tscv.split(data):
+
+    # Create the train & test split.
+    X_train, X_test = data.iloc[train_index], data.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
     # Create the oversampling instance.
     ros = RandomOverSampler(random_state=2018)
 
     # Oversample the training set.
     X_train, y_train = ros.fit_sample(X_train, y_train)
 
-    ''' Model Training '''
+    ''' Initialize the different machine learning models we want to use. '''
     # Logistic Regression
     log_reg = LogisticRegression()
 
@@ -195,6 +222,7 @@ for train_index, test_index in tscv.split(data):
     log_reg.fit(X_train, y_train)
     tree_classifer.fit(X_train, y_train)
     rfc.fit(X_train, y_train)
+    # xgb.train(X_train, y_train)
 
     # Predict with the various models.
     y_log_reg = log_reg.predict(X_test)
@@ -202,96 +230,28 @@ for train_index, test_index in tscv.split(data):
     y_rfc = rfc.predict(X_test)
 
     # Compute the AROC from the predictions.
+
     scores2.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
     scores2.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
     scores2.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
 
+    index += 1
 
-    ''' Reset the data to what it was like before Oversampling before performing PCA & Oversampling. '''
-    ####################################################################################################################
-    ''' Train & Test Split '''
-    # Create the train & test split again.
+''' Perform the training with the clenased data & no oversampling. '''
+scores3 = pd.DataFrame()
+for train_index, test_index in tscv.split(data):
+
+    # Create the train & test split.
     X_train, X_test = data.iloc[train_index], data.iloc[test_index]
     y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-    ''' Data Imputation '''
-    # Impute the age of person reported with the average.
-    X_train['Age of Person Reported'] = X_train['Age of Person Reported'].fillna(
-        round(X_train['Age of Person Reported'].mean()))
-    X_test['Age of Person Reported'] = X_test['Age of Person Reported'].fillna(
-        round(X_test['Age of Person Reported'].mean()))
-
-    ''' Remove Outliers '''
-    # Remove all the outliers
-    pd.DataFrame(X_train)
-    X_train['Outlier Score'] = outlier_scores
-
-    y_train = y_train.loc[X_train.loc[:, 'Outlier Score'] == 1]
-    X_train = X_train.loc[X_train.loc[:, 'Outlier Score'] == 1].drop('Outlier Score', axis=1)
-
-    # Delete the outlier_scores for memeory.
-    del outlier_scores
-
-    ''' Perform PCA & No Oversampling '''
-    ####################################################################################################################
-    ''' PCA '''
-    # Initialize the PCA model.
-    pca = PCA()
-
-    # Perform the PCA on the non-outlier data.
-    pca.fit_transform(X_train)
-
-    # Plot the results.
-    # plt.plot(pca.explained_variance_)
-    # plt.xlabel('n_components')
-    # plt.ylabel('explained variance')
-    # plt.title('Explained Variance by Variable - No Outliers')
-    # plt.show()
-
-    # Print out the explained variance.
-    print(pd.DataFrame(pca.explained_variance_ratio_, columns=['Explained Variance Ratio'], index=data.columns))
-
-    # Slim down the data based on the PCA results.
-    X_train = X_train[['Month of Incident', 'Age of Person Reported', 'Day of Incident', 'Year of Incident - 4 Digits',
-                       'Hour of Incident', 'Minute of Incident']]
-
-    X_test = X_test[['Month of Incident', 'Age of Person Reported', 'Day of Incident', 'Year of Incident - 4 Digits',
-                     'Hour of Incident', 'Minute of Incident']]
-
-    ''' Model Training '''
-    # Logistic Regression
-    log_reg = LogisticRegression()
-
-    # Decision Trees
-    tree_classifer = DecisionTreeClassifier()
-
-    # Random Forest
-    rfc = RandomForestClassifier()
-
-    # Fit the data using the various models.
-    log_reg.fit(X_train, y_train)
-    tree_classifer.fit(X_train, y_train)
-    rfc.fit(X_train, y_train)
-
-    # Predict with the various models.
-    y_log_reg = log_reg.predict(X_test)
-    y_tree_classifier = tree_classifer.predict(X_test)
-    y_rfc = rfc.predict(X_test)
-
-    # Compute the AROC from the predictions.
-    scores3.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
-    scores3.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
-    scores3.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
-
-    ''' Perform PCA & Oversampling '''
-    ####################################################################################################################
     # Create the oversampling instance.
-    ros = RandomOverSampler(random_state=2018)
+    # ros = RandomOverSampler(random_state=2018)
 
     # Oversample the training set.
     X_train, y_train = ros.fit_sample(X_train, y_train)
 
-    ''' Model Training '''
+    ''' Initialize the different machine learning models we want to use. '''
     # Logistic Regression
     log_reg = LogisticRegression()
 
@@ -305,6 +265,7 @@ for train_index, test_index in tscv.split(data):
     log_reg.fit(X_train, y_train)
     tree_classifer.fit(X_train, y_train)
     rfc.fit(X_train, y_train)
+    # xgb.train(X_train, y_train)
 
     # Predict with the various models.
     y_log_reg = log_reg.predict(X_test)
@@ -312,20 +273,61 @@ for train_index, test_index in tscv.split(data):
     y_rfc = rfc.predict(X_test)
 
     # Compute the AROC from the predictions.
+
+    scores3.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
+    scores3.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
+    scores3.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
+
+    index += 1
+
+''' Perform the training with the slim data & no oversampling. '''
+scores4 = pd.DataFrame()
+for train_index, test_index in tscv.split(slim_data):
+
+    # Create the train & test split.
+    X_train, X_test = slim_data.iloc[train_index], slim_data.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+    # Create the oversampling instance.
+    # ros = RandomOverSampler(random_state=2018)
+
+    # Oversample the training set.
+    # X_train, y_train = ros.fit_sample(X_train, y_train)
+
+    ''' Initialize the different machine learning models we want to use. '''
+    # Logistic Regression
+    log_reg = LogisticRegression()
+
+    # Decision Trees
+    tree_classifer = DecisionTreeClassifier()
+
+    # Random Forest
+    rfc = RandomForestClassifier()
+
+    # Fit the data using the various models.
+    log_reg.fit(X_train, y_train)
+    tree_classifer.fit(X_train, y_train)
+    rfc.fit(X_train, y_train)
+    # xgb.train(X_train, y_train)
+
+    # Predict with the various models.
+    y_log_reg = log_reg.predict(X_test)
+    y_tree_classifier = tree_classifer.predict(X_test)
+    y_rfc = rfc.predict(X_test)
+
+    # Compute the AROC from the predictions.
+
     scores4.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
     scores4.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
     scores4.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
 
-    # Increase the iterator
     index += 1
-
 
 # Export the results
 writer = pd.ExcelWriter('Training Results.xlsx', engine='xlsxwriter', datetime_format='mm/dd/yyyy')
-workbook = writer.book
 
-scores.to_excel(writer, sheet_name='No PCA & No Oversampling')
-scores2.to_excel(writer, sheet_name='No PCA & Oversampling')
-scores3.to_excel(writer, sheet_name='PCA & No Oversampling')
-scores4.to_excel(writer, sheet_name='PCA & Oversampling')
-workbook.close()
+scores.to_excel(writer, sheet_name='Slim Data & Oversampling')
+scores4.to_excel(writer, sheet_name='Slim Data & No Sampling')
+scores2.to_excel(writer, sheet_name='Cleansed Data & Oversampling')
+scores3.to_excel(writer, sheet_name='Cleansed Data & No sampling')
+
