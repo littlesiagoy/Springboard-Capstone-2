@@ -486,6 +486,8 @@ for train_index, test_index in tscv.split(data2):
     # Delete the outlier_scores for memeory.
     del outlier_scores
 
+    index += 1
+
 # Export the results
 writer = pd.ExcelWriter('Training Results.xlsx', engine='xlsxwriter', datetime_format='mm/dd/yyyy')
 workbook = writer.book
