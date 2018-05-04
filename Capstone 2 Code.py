@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.ensemble import IsolationForest, GradientBoostingClassifier, RandomForestClassifier
 from sklearn.decomposition import PCA
@@ -42,7 +43,8 @@ data = raw_data.drop(['Old Casual Occurrence Code', 'Old Equipment Movement Indi
                       'Dummy', 'Dummy1', 'Dummy2', 'Dummy3'], axis=1)
 
 # Drop the useless columns.
-data = data.drop(['Narrative1', 'Narrative2', 'Narrative3', 'Narrative Length', 'Accident/Incident Number'], axis=1)
+data = data.drop(['Narrative1', 'Narrative2', 'Narrative3', 'Narrative Length', 'Accident/Incident Number',
+                  'Covered Data (A, R, or P)'], axis=1)
 
 # Remove columns that provide duplicate information.
 data = data.drop(['Year of Incident', 'FIPS and County Code', 'County Code'], axis=1)
@@ -63,6 +65,9 @@ y = data[['Fatality?']]
 le = LabelEncoder()
 le.fit(y)
 y = pd.DataFrame(le.transform(y))
+
+# Create an alternate data so that we can use the label enconding function.
+data2 = data
 
 ''' Feature Selction '''
 #######################################################################################################################
@@ -88,7 +93,7 @@ data = pd.get_dummies(data)
 #######################################################################################################################
 
 
-''' Test/Train Split, Outlier Detection, and Model Building '''
+''' Test/Train Split, Outlier Detection, and Model Building without label encoding function. '''
 #######################################################################################################################
 #######################################################################################################################
 
@@ -138,8 +143,18 @@ for train_index, test_index in tscv.split(data):
     pd.DataFrame(X_train)
     X_train['Outlier Score'] = outlier_scores
 
+    # Export all the outliers to further analysis.
+    outliers = X_train.loc[X_train.loc[:, 'Outlier Score'] == -1]
+    outliers2 = y_train.loc[X_train.loc[:, 'Outlier Score'] == -1]
+    outliers.to_excel('outliers.xlsx')
+    outliers2.to_excel('outliers2.xlsx')
+
+    # Drop the Outlier Score columns.
     y_train = y_train.loc[X_train.loc[:, 'Outlier Score'] == 1]
     X_train = X_train.loc[X_train.loc[:, 'Outlier Score'] == 1].drop('Outlier Score', axis=1)
+
+
+    del outliers, outliers2
 
     # Delete the isolation forest for memory.
     del isof
@@ -320,12 +335,165 @@ for train_index, test_index in tscv.split(data):
     index += 1
 
 
+''' Test/Train Split, Outlier Detection, and Model Building with label encoding function. '''
+#######################################################################################################################
+#######################################################################################################################
+
+# Fill in the NAs so that we can use the label encoder.
+data2['Job Code'] = data2['Job Code'].fillna('0')
+data2['Indicator of Death Within a Year'] = data2['Indicator of Death Within a Year'].fillna('0')
+data2['Age of Person Reported'] = data2['Age of Person Reported'].fillna('0')
+data2['Number of Positive Alcohol Tests'] = data2['Number of Positive Alcohol Tests'].fillna('3')
+data2['Number of Positive Drug Tests'] = data2['Number of Positive Drug Tests'].fillna('3')
+data2['Location of Injury on Body'] = data2['Location of Injury on Body'].fillna('10')
+data2['Hazmat Exposure?'] = data2['Hazmat Exposure?'].fillna('0')
+data2['Employee Termination or Transfer?'] = data2['Employee Termination or Transfer?'].fillna('0')
+
+data2 = data2.apply(LabelEncoder().fit_transform)
+
+# Initalize the scores dataframe, and index.
+scores5 = pd.DataFrame()
+scores6 = pd.DataFrame()
+scores7 = pd.DataFrame()
+scores8 = pd.DataFrame()
+
+index = 0
+
+''' Perform the Splitting, Outlier Detection, and Model Training'''
+# Actually use the time series split to create the test and training sets.
+for train_index, test_index in tscv.split(data2):
+
+    ''' Train & Test Split '''
+    # Create the train & test split.
+    X_train, X_test = data2.iloc[train_index], data2.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+    ''' Isolation Forests '''
+    # Initialize the model.
+    isof = IsolationForest()
+
+    # Fit the data and score it.
+    isof.fit(X_train)
+    outlier_scores = isof.predict(X_train)
+    outlier_scores = pd.DataFrame(outlier_scores)
+    outlier_scores.to_excel('Outlier Scores - IF.xlsx')
+
+    ''' Local Outlier Factor '''
+    # lof = LocalOutlierFactor()
+    #
+    # outlier_scores_lof = pd.DataFrame(lof.fit_predict(X_train))
+    # outlier_scores_lof.columns = ['Outlier Score']
+    # outlier_scores_lof.to_excel('Outlier Scores - LOF.xlsx')
+
+    # Remove all the outliers
+    pd.DataFrame(X_train)
+    X_train['Outlier Score'] = outlier_scores
+
+    # Export all the outliers to further analysis.
+    outliers = X_train.loc[X_train.loc[:, 'Outlier Score'] == -1]
+    outliers2 = y_train.loc[X_train.loc[:, 'Outlier Score'] == -1]
+    outliers.to_excel('outliers.xlsx')
+    outliers2.to_excel('outliers2.xlsx')
+
+    # Drop the Outlier Score columns.
+    y_train = y_train.loc[X_train.loc[:, 'Outlier Score'] == 1]
+    X_train = X_train.loc[X_train.loc[:, 'Outlier Score'] == 1].drop('Outlier Score', axis=1)
+
+
+    del outliers, outliers2
+
+    # Delete the isolation forest for memory.
+    del isof
+
+    ''' Perform No PCA & No Oversampling, and then train the models. '''
+    ####################################################################################################################
+    ''' Model Training '''
+    # Logistic Regression
+    log_reg = LogisticRegression()
+
+    # Decision Trees
+    tree_classifer = DecisionTreeClassifier()
+
+    # Random Forest
+    rfc = RandomForestClassifier()
+
+    # Fit the data using the various models.
+    log_reg.fit(X_train, y_train)
+    tree_classifer.fit(X_train, y_train)
+    rfc.fit(X_train, y_train)
+
+    # Predict with the various models.
+    y_log_reg = log_reg.predict(X_test)
+    y_tree_classifier = tree_classifer.predict(X_test)
+    y_rfc = rfc.predict(X_test)
+
+    # Compute the AROC from the predictions.
+    scores5.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
+    scores5.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
+    scores5.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
+
+    ''' Perform No PCA & Oversampling, then Model training '''
+    ####################################################################################################################
+
+    ''' Perform Oversampling '''
+    # Create the oversampling instance.
+    ros = RandomOverSampler(random_state=2018)
+
+    # Oversample the training set.
+    X_train, y_train = ros.fit_sample(X_train, y_train)
+
+    ''' Model Training '''
+    # Logistic Regression
+    log_reg = LogisticRegression()
+
+    # Decision Trees
+    tree_classifer = DecisionTreeClassifier()
+
+    # Random Forest
+    rfc = RandomForestClassifier()
+
+    # Fit the data using the various models.
+    log_reg.fit(X_train, y_train)
+    tree_classifer.fit(X_train, y_train)
+    rfc.fit(X_train, y_train)
+
+    # Predict with the various models.
+    y_log_reg = log_reg.predict(X_test)
+    y_tree_classifier = tree_classifer.predict(X_test)
+    y_rfc = rfc.predict(X_test)
+
+    # Compute the AROC from the predictions.
+    scores6.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
+    scores6.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
+    scores6.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
+
+
+    ''' Reset the data to what it was like before Oversampling before performing PCA & Oversampling. '''
+    ####################################################################################################################
+    ''' Train & Test Split '''
+    # Create the train & test split again.
+    X_train, X_test = data2.iloc[train_index], data2.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+    ''' Remove Outliers '''
+    # Remove all the outliers
+    pd.DataFrame(X_train)
+    X_train['Outlier Score'] = outlier_scores
+
+    y_train = y_train.loc[X_train.loc[:, 'Outlier Score'] == 1]
+    X_train = X_train.loc[X_train.loc[:, 'Outlier Score'] == 1].drop('Outlier Score', axis=1)
+
+    # Delete the outlier_scores for memeory.
+    del outlier_scores
+
 # Export the results
 writer = pd.ExcelWriter('Training Results.xlsx', engine='xlsxwriter', datetime_format='mm/dd/yyyy')
 workbook = writer.book
 
-scores.to_excel(writer, sheet_name='No PCA & No Oversampling')
-scores2.to_excel(writer, sheet_name='No PCA & Oversampling')
-scores3.to_excel(writer, sheet_name='PCA & No Oversampling')
-scores4.to_excel(writer, sheet_name='PCA & Oversampling')
+scores.to_excel(writer, sheet_name='No PCA or Sampling - Dum')
+scores2.to_excel(writer, sheet_name='No PCA & Sampling - Dum')
+scores3.to_excel(writer, sheet_name='PCA & No Sampling - Dum')
+scores4.to_excel(writer, sheet_name='PCA & Sampling - Dum')
+scores5.to_excel(writer, sheet_name='No PCA & Sampling - No Dum')
+scores6.to_excel(writer, sheet_name='No PCA & Sampling - No Dum')
 workbook.close()
