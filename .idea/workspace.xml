@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="fa88dee2-81a0-4360-8937-ed182b5ea197" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Capstone 2 Code.py" beforeDir="false" afterPath="$PROJECT_DIR$/Capstone 2 Code.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Outlier Scores - IF.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/Outlier Scores - IF.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/outliers.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/outliers.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/outliers2.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/outliers2.xlsx" afterDir="false" />
-    </list>
+    <list default="true" id="fa88dee2-81a0-4360-8937-ed182b5ea197" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -21,7 +15,7 @@
         <entry file="file://$PROJECT_DIR$/Capstone 2 Code.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="2639">
-              <caret line="545" lean-forward="true" selection-start-line="413" selection-end-line="545" />
+              <caret line="545" selection-start-line="413" selection-end-line="545" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -588,7 +582,7 @@
     <entry file="file://$PROJECT_DIR$/Capstone 2 Code.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2639">
-          <caret line="545" lean-forward="true" selection-start-line="413" selection-end-line="545" />
+          <caret line="545" selection-start-line="413" selection-end-line="545" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
