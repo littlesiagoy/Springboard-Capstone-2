@@ -23,6 +23,8 @@ raw_data = pd.read_excel('Railroad Dataset.xlsx')
 # Create a copy of the data.
 data = raw_data
 
+del raw_data
+
 # Rename the columns.
 data.columns = ['Year of Incident', 'Month of Incident', 'Railroad Reporting', 'Accident/Incident Number',
                 'Type of Person', 'Job Code', 'Nature of Injury', 'Location of Injury on Body',
@@ -39,8 +41,8 @@ data.columns = ['Year of Incident', 'Month of Incident', 'Railroad Reporting', '
                 'Narrative3', 'Covered Data (A, R, or P)', 'Latitude', 'Longitude']
 
 # Drop the empty columns.
-data = raw_data.drop(['Old Casual Occurrence Code', 'Old Equipment Movement Indicator',
-                      'Dummy', 'Dummy1', 'Dummy2', 'Dummy3'], axis=1)
+data = data.drop(['Old Casual Occurrence Code', 'Old Equipment Movement Indicator',
+                  'Dummy', 'Dummy1', 'Dummy2', 'Dummy3'], axis=1)
 
 # Drop the useless columns.
 data = data.drop(['Narrative1', 'Narrative2', 'Narrative3', 'Narrative Length', 'Accident/Incident Number',
@@ -66,9 +68,6 @@ le = LabelEncoder()
 le.fit(y)
 y = pd.DataFrame(le.transform(y))
 
-# Create an alternate data so that we can use the label enconding function.
-data2 = data
-
 ''' Feature Selction '''
 #######################################################################################################################
 # Drop the variables that could be explained by other variables.
@@ -77,8 +76,7 @@ data = data.drop(['County', 'Railroad Reporting', 'Job Code'], axis=1)
 # Keep only the columns we think would help us answer our question.
 data = data.drop(['Nature of Injury', 'Location of Injury on Body', 'Indicator of Death Within a Year',
                   'Days Away From Work (Employee)', '# of Days of Restricted Activity (Employee)', 'Fatality?',
-                  'Additional Information About Injury', 'Employee Termination or Transfer?',
-                  'Covered Data (A, R, or P)'], axis=1)
+                  'Additional Information About Injury', 'Employee Termination or Transfer?'], axis=1)
 
 # Create the columns that we will treat as quantitative.
 int_cols = ['Age of Person Reported', 'Day of Incident', 'Year of Incident - 4 Digits', 'Hour of Incident',
@@ -111,7 +109,6 @@ index = 0
 ''' Perform the Splitting, Outlier Detection, and Model Training'''
 # Actually use the time series split to create the test and training sets.
 for train_index, test_index in tscv.split(data):
-
     ''' Train & Test Split '''
     # Create the train & test split.
     X_train, X_test = data.iloc[train_index], data.iloc[test_index]
@@ -119,8 +116,10 @@ for train_index, test_index in tscv.split(data):
 
     ''' Data Imputation '''
     # Impute the age of person reported with the average.
-    X_train['Age of Person Reported'] = X_train['Age of Person Reported'].fillna(round(X_train['Age of Person Reported'].mean()))
-    X_test['Age of Person Reported'] = X_test['Age of Person Reported'].fillna(round(X_test['Age of Person Reported'].mean()))
+    X_train['Age of Person Reported'] = X_train['Age of Person Reported'].fillna(
+        round(X_train['Age of Person Reported'].mean()))
+    X_test['Age of Person Reported'] = X_test['Age of Person Reported'].fillna(
+        round(X_test['Age of Person Reported'].mean()))
 
     ''' Isolation Forests '''
     # Initialize the model.
@@ -152,7 +151,6 @@ for train_index, test_index in tscv.split(data):
     # Drop the Outlier Score columns.
     y_train = y_train.loc[X_train.loc[:, 'Outlier Score'] == 1]
     X_train = X_train.loc[X_train.loc[:, 'Outlier Score'] == 1].drop('Outlier Score', axis=1)
-
 
     del outliers, outliers2
 
@@ -189,6 +187,10 @@ for train_index, test_index in tscv.split(data):
     ''' Perform No PCA & Oversampling, then Model training '''
     ####################################################################################################################
 
+    # Delete the variables for memory.
+    del log_reg, tree_classifer, rfc
+    del y_log_reg, y_tree_classifier, y_rfc
+
     ''' Perform Oversampling '''
     # Create the oversampling instance.
     ros = RandomOverSampler(random_state=2018)
@@ -220,7 +222,6 @@ for train_index, test_index in tscv.split(data):
     scores2.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
     scores2.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
     scores2.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
-
 
     ''' Reset the data to what it was like before Oversampling before performing PCA & Oversampling. '''
     ####################################################################################################################
@@ -300,6 +301,10 @@ for train_index, test_index in tscv.split(data):
 
     ''' Perform PCA & Oversampling '''
     ####################################################################################################################
+
+    # Delete the variables for memory.
+    del log_reg, tree_classifer, rfc
+
     # Create the oversampling instance.
     ros = RandomOverSampler(random_state=2018)
 
@@ -334,10 +339,60 @@ for train_index, test_index in tscv.split(data):
     # Increase the iterator
     index += 1
 
-
 ''' Test/Train Split, Outlier Detection, and Model Building with label encoding function. '''
 #######################################################################################################################
 #######################################################################################################################
+# Delete the old data and reload the raw data.
+del data
+
+raw_data = pd.read_excel('Railroad Dataset.xlsx')
+
+# Create a copy of the data.
+data2 = raw_data
+
+# Rename the columns.
+data2.columns = ['Year of Incident', 'Month of Incident', 'Railroad Reporting', 'Accident/Incident Number',
+                'Type of Person', 'Job Code', 'Nature of Injury', 'Location of Injury on Body',
+                'Indicator of Death Within a Year', 'Old Casual Occurrence Code', 'Old Equipment Movement Indicator',
+                'Age of Person Reported', 'Days Away From Work (Employee)',
+                '# of Days of Restricted Activity (Employee)', 'Dummy', 'FIPS State Code', 'Railroad Class', 'Dummy1',
+                'FRA Designated Region', 'Dummy2', 'Narrative Length', 'Fatality?', 'Form F6180-54 Filled?',
+                'Form F6180-57 Filled?', 'Dummy3', 'Day of Incident', 'Year of Incident - 4 Digits', 'Hour of Incident',
+                'Minute of Incident', 'AM or PM Indicator', 'County', 'County Code', 'FIPS and County Code',
+                'Number of Positive Alcohol Tests', 'Number of Positive Drug Tests', 'Physical Act Circumstance Code',
+                'General Location of Person at Time of Injury', 'On-track Equipment Involved',
+                'Specific Location of Person At Time of Injury', 'Event Code', 'Additional Information About Injury',
+                'Cause Code', 'Hazmat Exposure?', 'Employee Termination or Transfer?', 'Narrative1', 'Narrative2',
+                'Narrative3', 'Covered Data (A, R, or P)', 'Latitude', 'Longitude']
+
+# Drop the empty columns.
+data2 = data2.drop(['Old Casual Occurrence Code', 'Old Equipment Movement Indicator',
+                  'Dummy', 'Dummy1', 'Dummy2', 'Dummy3'], axis=1)
+
+# Drop the useless columns.
+data2 = data2.drop(['Narrative1', 'Narrative2', 'Narrative3', 'Narrative Length', 'Accident/Incident Number',
+                  'Covered Data (A, R, or P)'], axis=1)
+
+# Remove columns that provide duplicate information.
+data2 = data2.drop(['Year of Incident', 'FIPS and County Code', 'County Code'], axis=1)
+
+# Remove columns that provided more trouble than they were worth.
+data2 = data2.drop(['Latitude', 'Longitude'], axis=1)
+
+# Change all the columns to strings so that we can remove the empty spaces.
+data2 = data2.apply(lambda x: x.astype(str).str.strip())
+
+# Set all the empty values as nans.
+data2 = data2.replace('', np.nan)
+
+# Create our target variable.
+y = data2[['Fatality?']]
+
+# Encode the target variable.
+le = LabelEncoder()
+le.fit(y)
+y = pd.DataFrame(le.transform(y))
+
 
 # Fill in the NAs so that we can use the label encoder.
 data2['Job Code'] = data2['Job Code'].fillna('0')
@@ -349,7 +404,11 @@ data2['Location of Injury on Body'] = data2['Location of Injury on Body'].fillna
 data2['Hazmat Exposure?'] = data2['Hazmat Exposure?'].fillna('0')
 data2['Employee Termination or Transfer?'] = data2['Employee Termination or Transfer?'].fillna('0')
 
+# Drop the columns whose combination gives us a perfect correlation to the fatality variable.
+# data2 = data2.drop()
 data2 = data2.apply(LabelEncoder().fit_transform)
+
+data2 = data2.drop('Indicator of Death Within a Year', axis=1)
 
 # Initalize the scores dataframe, and index.
 scores5 = pd.DataFrame()
@@ -362,7 +421,6 @@ index = 0
 ''' Perform the Splitting, Outlier Detection, and Model Training'''
 # Actually use the time series split to create the test and training sets.
 for train_index, test_index in tscv.split(data2):
-
     ''' Train & Test Split '''
     # Create the train & test split.
     X_train, X_test = data2.iloc[train_index], data2.iloc[test_index]
@@ -398,7 +456,6 @@ for train_index, test_index in tscv.split(data2):
     # Drop the Outlier Score columns.
     y_train = y_train.loc[X_train.loc[:, 'Outlier Score'] == 1]
     X_train = X_train.loc[X_train.loc[:, 'Outlier Score'] == 1].drop('Outlier Score', axis=1)
-
 
     del outliers, outliers2
 
@@ -466,7 +523,6 @@ for train_index, test_index in tscv.split(data2):
     scores6.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
     scores6.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
     scores6.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
-
 
     ''' Reset the data to what it was like before Oversampling before performing PCA & Oversampling. '''
     ####################################################################################################################
