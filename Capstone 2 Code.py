@@ -1,13 +1,12 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy
 from sklearn.neighbors import LocalOutlierFactor
-from sklearn.ensemble import IsolationForest, GradientBoostingClassifier, RandomForestClassifier
+from sklearn.ensemble import IsolationForest, RandomForestClassifier
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import cross_val_score, train_test_split, TimeSeriesSplit
+from sklearn.model_selection import TimeSeriesSplit
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import roc_auc_score
 from imblearn.over_sampling import RandomOverSampler
@@ -350,28 +349,31 @@ raw_data = pd.read_excel('Railroad Dataset.xlsx')
 # Create a copy of the data.
 data2 = raw_data
 
+del raw_data
+
 # Rename the columns.
 data2.columns = ['Year of Incident', 'Month of Incident', 'Railroad Reporting', 'Accident/Incident Number',
-                'Type of Person', 'Job Code', 'Nature of Injury', 'Location of Injury on Body',
-                'Indicator of Death Within a Year', 'Old Casual Occurrence Code', 'Old Equipment Movement Indicator',
-                'Age of Person Reported', 'Days Away From Work (Employee)',
-                '# of Days of Restricted Activity (Employee)', 'Dummy', 'FIPS State Code', 'Railroad Class', 'Dummy1',
-                'FRA Designated Region', 'Dummy2', 'Narrative Length', 'Fatality?', 'Form F6180-54 Filled?',
-                'Form F6180-57 Filled?', 'Dummy3', 'Day of Incident', 'Year of Incident - 4 Digits', 'Hour of Incident',
-                'Minute of Incident', 'AM or PM Indicator', 'County', 'County Code', 'FIPS and County Code',
-                'Number of Positive Alcohol Tests', 'Number of Positive Drug Tests', 'Physical Act Circumstance Code',
-                'General Location of Person at Time of Injury', 'On-track Equipment Involved',
-                'Specific Location of Person At Time of Injury', 'Event Code', 'Additional Information About Injury',
-                'Cause Code', 'Hazmat Exposure?', 'Employee Termination or Transfer?', 'Narrative1', 'Narrative2',
-                'Narrative3', 'Covered Data (A, R, or P)', 'Latitude', 'Longitude']
+                 'Type of Person', 'Job Code', 'Nature of Injury', 'Location of Injury on Body',
+                 'Indicator of Death Within a Year', 'Old Casual Occurrence Code', 'Old Equipment Movement Indicator',
+                 'Age of Person Reported', 'Days Away From Work (Employee)',
+                 '# of Days of Restricted Activity (Employee)', 'Dummy', 'FIPS State Code', 'Railroad Class', 'Dummy1',
+                 'FRA Designated Region', 'Dummy2', 'Narrative Length', 'Fatality?', 'Form F6180-54 Filled?',
+                 'Form F6180-57 Filled?', 'Dummy3', 'Day of Incident', 'Year of Incident - 4 Digits',
+                 'Hour of Incident',
+                 'Minute of Incident', 'AM or PM Indicator', 'County', 'County Code', 'FIPS and County Code',
+                 'Number of Positive Alcohol Tests', 'Number of Positive Drug Tests', 'Physical Act Circumstance Code',
+                 'General Location of Person at Time of Injury', 'On-track Equipment Involved',
+                 'Specific Location of Person At Time of Injury', 'Event Code', 'Additional Information About Injury',
+                 'Cause Code', 'Hazmat Exposure?', 'Employee Termination or Transfer?', 'Narrative1', 'Narrative2',
+                 'Narrative3', 'Covered Data (A, R, or P)', 'Latitude', 'Longitude']
 
 # Drop the empty columns.
 data2 = data2.drop(['Old Casual Occurrence Code', 'Old Equipment Movement Indicator',
-                  'Dummy', 'Dummy1', 'Dummy2', 'Dummy3'], axis=1)
+                    'Dummy', 'Dummy1', 'Dummy2', 'Dummy3'], axis=1)
 
 # Drop the useless columns.
 data2 = data2.drop(['Narrative1', 'Narrative2', 'Narrative3', 'Narrative Length', 'Accident/Incident Number',
-                  'Covered Data (A, R, or P)'], axis=1)
+                    'Covered Data (A, R, or P)'], axis=1)
 
 # Remove columns that provide duplicate information.
 data2 = data2.drop(['Year of Incident', 'FIPS and County Code', 'County Code'], axis=1)
@@ -393,7 +395,6 @@ le = LabelEncoder()
 le.fit(y)
 y = pd.DataFrame(le.transform(y))
 
-
 # Fill in the NAs so that we can use the label encoder.
 data2['Job Code'] = data2['Job Code'].fillna('0')
 data2['Indicator of Death Within a Year'] = data2['Indicator of Death Within a Year'].fillna('0')
@@ -404,11 +405,11 @@ data2['Location of Injury on Body'] = data2['Location of Injury on Body'].fillna
 data2['Hazmat Exposure?'] = data2['Hazmat Exposure?'].fillna('0')
 data2['Employee Termination or Transfer?'] = data2['Employee Termination or Transfer?'].fillna('0')
 
-# Drop the columns whose combination gives us a perfect correlation to the fatality variable.
-# data2 = data2.drop()
-data2 = data2.apply(LabelEncoder().fit_transform)
+# Drop the column that gives us a perfect correlation to the fatality variable.
+data2 = data2.drop(['Nature of Injury', 'Fatality?'], axis=1)
 
-data2 = data2.drop('Indicator of Death Within a Year', axis=1)
+# Encode all the variables.
+data2 = data2.apply(LabelEncoder().fit_transform)
 
 # Initalize the scores dataframe, and index.
 scores5 = pd.DataFrame()
@@ -542,6 +543,94 @@ for train_index, test_index in tscv.split(data2):
     # Delete the outlier_scores for memeory.
     del outlier_scores
 
+    ''' Perform PCA & No Oversampling '''
+    ####################################################################################################################
+    ''' PCA '''
+    # Initialize the PCA model.
+    pca = PCA()
+
+    # Perform the PCA on the non-outlier data.
+    pca.fit_transform(X_train)
+
+    # Plot the results.
+    # plt.plot(pca.explained_variance_)
+    # plt.xlabel('n_components')
+    # plt.ylabel('explained variance')
+    # plt.title('Explained Variance by Variable - No Outliers')
+    # plt.show()
+
+    # Print out the explained variance.
+    print(pd.DataFrame(pca.explained_variance_ratio_, columns=['Explained Variance Ratio'], index=data2.columns))
+
+    # Slim down the data based on the PCA results.
+    X_train = X_train[['Month of Incident', 'Age of Person Reported', 'Day of Incident', 'Year of Incident - 4 Digits',
+                       'Hour of Incident', 'Minute of Incident']]
+
+    X_test = X_test[['Month of Incident', 'Age of Person Reported', 'Day of Incident', 'Year of Incident - 4 Digits',
+                     'Hour of Incident', 'Minute of Incident']]
+
+    ''' Model Training '''
+    # Logistic Regression
+    log_reg = LogisticRegression()
+
+    # Decision Trees
+    tree_classifer = DecisionTreeClassifier()
+
+    # Random Forest
+    rfc = RandomForestClassifier()
+
+    # Fit the data using the various models.
+    log_reg.fit(X_train, y_train)
+    tree_classifer.fit(X_train, y_train)
+    rfc.fit(X_train, y_train)
+
+    # Predict with the various models.
+    y_log_reg = log_reg.predict(X_test)
+    y_tree_classifier = tree_classifer.predict(X_test)
+    y_rfc = rfc.predict(X_test)
+
+    # Compute the AROC from the predictions.
+    scores7.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
+    scores7.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
+    scores7.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
+
+    ''' Perform PCA & Oversampling '''
+    ####################################################################################################################
+
+    # Delete the variables for memory.
+    del log_reg, tree_classifer, rfc
+
+    # Create the oversampling instance.
+    ros = RandomOverSampler(random_state=2018)
+
+    # Oversample the training set.
+    X_train, y_train = ros.fit_sample(X_train, y_train)
+
+    ''' Model Training '''
+    # Logistic Regression
+    log_reg = LogisticRegression()
+
+    # Decision Trees
+    tree_classifer = DecisionTreeClassifier()
+
+    # Random Forest
+    rfc = RandomForestClassifier()
+
+    # Fit the data using the various models.
+    log_reg.fit(X_train, y_train)
+    tree_classifer.fit(X_train, y_train)
+    rfc.fit(X_train, y_train)
+
+    # Predict with the various models.
+    y_log_reg = log_reg.predict(X_test)
+    y_tree_classifier = tree_classifer.predict(X_test)
+    y_rfc = rfc.predict(X_test)
+
+    # Compute the AROC from the predictions.
+    scores8.loc[index, 'Logistic Regresion'] = roc_auc_score(y_test, y_log_reg)
+    scores8.loc[index, 'Decision Tree'] = roc_auc_score(y_test, y_tree_classifier)
+    scores8.loc[index, 'Random Forest'] = roc_auc_score(y_test, y_rfc)
+
     index += 1
 
 # Export the results
@@ -552,6 +641,9 @@ scores.to_excel(writer, sheet_name='No PCA or Sampling - Dum')
 scores2.to_excel(writer, sheet_name='No PCA & Sampling - Dum')
 scores3.to_excel(writer, sheet_name='PCA & No Sampling - Dum')
 scores4.to_excel(writer, sheet_name='PCA & Sampling - Dum')
-scores5.to_excel(writer, sheet_name='No PCA & Sampling - No Dum')
+scores5.to_excel(writer, sheet_name='No PCA or Sampling - No Dum')
 scores6.to_excel(writer, sheet_name='No PCA & Sampling - No Dum')
+scores7.to_excel(writer, sheet_name='PCA & No Sampling - No Dum')
+scores8.to_excel(writer, sheet_name='PCA & Sampling - No Dum')
+
 workbook.close()
