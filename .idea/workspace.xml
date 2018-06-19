@@ -5,13 +5,12 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Capstone 2 Code.py" beforeDir="false" afterPath="$PROJECT_DIR$/Capstone 2 Code.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Capstone 2 Report.docx" beforeDir="false" afterPath="$PROJECT_DIR$/Capstone 2 Report.docx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Capstone 2 Slidedeck.pptx" beforeDir="false" afterPath="$PROJECT_DIR$/Capstone 2 Slidedeck.pptx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Outlier Scores - IF.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/Outlier Scores - IF.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Training Results.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/Training Results.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/outliers.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/outliers.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/outliers2.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/outliers2.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/test.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test3.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/test3.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test4.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/test4.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/venv/pip-selfcheck.json" beforeDir="false" afterPath="$PROJECT_DIR$/venv/pip-selfcheck.json" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -21,20 +20,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="Capstone 2 Code.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/Capstone 2 Code.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="5868">
-              <caret line="418" selection-start-line="418" selection-end-line="418" />
-              <folding>
-                <element signature="e#0#19#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-    </leaf>
+    <leaf />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -49,6 +35,8 @@
       <find>LabelEncoder</find>
       <find>data</find>
       <find>outlier_scores</find>
+      <find>tscv</find>
+      <find>writer</find>
     </findStrings>
     <replaceStrings>
       <replace>data2</replace>
@@ -71,11 +59,11 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="7">
-    <option name="x" value="756" />
-    <option name="y" value="-17" />
-    <option name="width" value="1934" />
-    <option name="height" value="1047" />
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="-1928" />
+    <option name="y" value="-8" />
+    <option name="width" value="974" />
+    <option name="height" value="527" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -83,7 +71,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -95,6 +82,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
       <pane id="AndroidView" />
       <pane id="PackagesPane" />
     </panes>
@@ -277,17 +265,16 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
+    <frame x="-1928" y="-8" width="1936" height="1056" extended-state="6" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.1743941" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.1743941" />
       <window_info anchor="bottom" id="TODO" order="6" weight="0.33769062" />
-      <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.386196" side_tool="true" weight="0.32897604" />
+      <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.3888889" side_tool="true" weight="0.31683168" />
       <window_info anchor="bottom" id="Version Control" order="7" weight="0.32897604" />
-      <window_info anchor="bottom" id="Python Console" order="8" sideWeight="0.613804" weight="0.3137255" />
+      <window_info active="true" anchor="bottom" id="Python Console" order="8" sideWeight="0.6111111" visible="true" weight="0.3583878" />
       <window_info anchor="bottom" id="Run" order="2" sideWeight="0.8757996" weight="0.33442265" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
-      <window_info anchor="bottom" id="Terminal" order="7" sideWeight="0.49789253" weight="0.32897604" />
+      <window_info anchor="bottom" id="Terminal" order="7" sideWeight="0.49679488" weight="0.13971397" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="right" id="Palette" order="3" />
@@ -322,21 +309,8 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/Capstone 2 Code.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="969">
-          <caret line="57" column="34" selection-start-line="57" selection-end-line="57" selection-end-column="85" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Capstone 2 Code.py">
-      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2244">
           <caret line="143" column="38" lean-forward="true" selection-start-line="143" selection-start-column="38" selection-end-line="143" selection-end-column="38" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -592,13 +566,17 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/venv/Lib/site-packages/sklearn/tree/export.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="42">
+          <caret line="399" column="19" lean-forward="true" selection-start-line="399" selection-start-column="19" selection-end-line="399" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/Capstone 2 Code.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5868">
-          <caret line="418" selection-start-line="418" selection-end-line="418" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="325">
+          <caret line="593" lean-forward="true" selection-start-line="549" selection-end-line="593" />
         </state>
       </provider>
     </entry>

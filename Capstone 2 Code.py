@@ -563,11 +563,21 @@ for train_index, test_index in tscv.split(data2):
     print(pd.DataFrame(pca.explained_variance_ratio_, columns=['Explained Variance Ratio'], index=data2.columns))
 
     # Slim down the data based on the PCA results.
-    X_train = X_train[['Month of Incident', 'Age of Person Reported', 'Day of Incident', 'Year of Incident - 4 Digits',
-                       'Hour of Incident', 'Minute of Incident']]
+    X_train = X_train[['Month of Incident', 'Railroad Reporting', 'Type of Person', 'Job Code',
+                       'Location of Injury on Body']]
 
-    X_test = X_test[['Month of Incident', 'Age of Person Reported', 'Day of Incident', 'Year of Incident - 4 Digits',
-                     'Hour of Incident', 'Minute of Incident']]
+    X_test = X_test[['Month of Incident', 'Railroad Reporting', 'Type of Person', 'Job Code',
+                     'Location of Injury on Body']]
+
+    # Investigate the pca of Month of Incident Variable.
+
+    # Convert the month of incident to str.
+    data3 = X_train[['Month of Incident']].astype(str)
+    # Dummify the column.
+    pd.get_dummies(data3)
+    # PCA the data.
+    pca.fit_transform(pd.get_dummies(data3))
+    print(pd.DataFrame(pca.explained_variance_ratio_))
 
     ''' Model Training '''
     # Logistic Regression
